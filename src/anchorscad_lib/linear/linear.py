@@ -29,10 +29,6 @@ GVector([0.4999999999999999, -0.4999999999999999, 0.7071067811865476, 1.0])
 '''
 
 import numbers
-try:    
-    from types import NoneType
-except ImportError:
-    NoneType = None.__class__
 import numpy as np
 from typing import Callable, Tuple, Any, Union, List
 from dataclasses import dataclass, MISSING
@@ -139,7 +135,7 @@ class GVector(object):
             must be 1.
         '''
         self.v = self._validate(v)
-        if np.abs(self.v[0, 3] - 1.0) > np.float64(1e-14):
+        if np.abs(self.v[3] - 1.0) > np.float64(1e-14):
             raise VectorInvalidError(
                 'Last value must be 1 (or approx 1) was %f' % self.v[0, 3])
 
@@ -147,32 +143,20 @@ class GVector(object):
     def _validate(cls, v):
         if isinstance(v, GVector):
             return v.v.copy()
-        if isinstance(v, np.matrix):
-            if np.shape(v) == (1, 4):
-                return v
-            elif np.shape(v) == (4, 1):
-                return v.T
-            elif np.shape(v) == (1, 3):
-                return np.matrix(v.tolist()[0] + [1.])
-            elif np.shape(v) == (3, 1):
-                return np.matrix(v.T.tolist()[0] + [1.])
-            else:
-                raise MatrixShapeError(
-                    'Matrix supplied is not a 4x1 or 1x4, Shape is %s' %
-                    'x'.join(str(n) for n in np.shape(v)))
+
         elif isinstance(v, np.ndarray):
             if np.shape(v) == (4, ):
-                return np.matrix(v)
+                return np.array(v)
             elif np.shape(v) == (3, ):
-                return np.matrix(v.tolist() + [1.])
+                return np.append(v, 1.0)
             elif np.shape(v) == (1, 4):
-                return np.matrix(v)
+                return np.array(v[0])
             elif np.shape(v) == (4, 1):
-                return np.matrix(v).T
+                return v.reshape(4)
             elif np.shape(v) == (1, 3):
-                return np.matrix(v.tolist()[0] + [1.])
+                return np.append(v[0], 1.0)
             elif np.shape(v) == (3, 1):
-                return np.matrix(v.T.tolist()[0] + [1.])
+                return np.append(v.reshape(3), 1.0)
             else:
                 raise MatrixShapeError(
                     'Array supplied is not a 1x4 or 4x4, Shape is %s' %
@@ -180,11 +164,11 @@ class GVector(object):
         else:
             # Converts a len 3 iterable into a len 4 iterable (last elenent defaults to 1) or
             # a len 4 iterable.
-            l = LIST_3_4_FLOAT(v)
-            if len(l) == 3:
-                l += [np.float64(1.0)]
-            if len(l) == 4:
-                return np.matrix(l)
+            ls = LIST_3_4_FLOAT(v)
+            if len(ls) == 3:
+                return np.append(ls, 1.0)
+            if len(ls) == 4:
+                return np.array(ls)
             raise MatrixShapeError(
                 'Array supplied is not a 3 or 4 length value, Length is %d' %
                 len(v))
@@ -240,20 +224,20 @@ class GVector(object):
     def __getitem__(self, index):
         if isinstance(index, tuple):
             if len(index) == 1:
-                return self.v.A1[index]
+                return self.v[index]
             return self.v[index]
         elif isinstance(index, slice):
             return self.A[index]
-        return self.v[0, index]
+        return self.v[index]
 
     def __setitem__(self, index, value):
         if isinstance(index, tuple):
             if len(index) == 1:
-                self.v.A1[index] = value
+                self.v[index] = value
             else:
                 self.v[index] = value
         else:
-            self.v[0, index] = value
+            self.v[index] = value
 
     def __eq__(self, other):
         return isinstance(other, GVector) and np.array_equal(self.v, other.v)
@@ -262,14 +246,14 @@ class GVector(object):
         return not self == other
     
     def __len__(self):
-        return np.shape(self.v)[1]
+        return np.shape(self.v)[0]
 
     def dot3D(self, other):
         '''
         Returns the dot product being the product of the length of the self and other
         vectors and cos(andgle between the vectors self and other).
         '''
-        return np.sum(self.v.A1[0:3] * other.v.A1[0:3])
+        return np.sum(self.v[0:3] * other.v[0:3])
 
     def length(self):
         '''Returns the length of this 3D vector.'''
@@ -288,12 +272,12 @@ class GVector(object):
         '''
         Returns a new normalized (length 1 same direction) vector.
         '''
-        return GVector(self.v.A1[0:3] / self.length())
+        return GVector(self.v[0:3] / self.length())
     
     @property   
     def A2(self):
         '''Returns the numpy.array equivalent of this vector's first 2 elements.'''
-        return self.v.A1[0:2]
+        return self.v[0:2]
 
     def cross3D(self, other):
         '''
@@ -304,8 +288,8 @@ class GVector(object):
         '''
         if not isinstance(other, GVector):
             other = GVector(other)
-        a = self.v.A1
-        b = other.v.A1
+        a = self.v
+        b = other.v
         return GVector([
                     a[1]*b[2] - a[2]*b[1],
                     a[2]*b[0] - a[0]*b[2],
@@ -315,37 +299,37 @@ class GVector(object):
     @property
     def L(self):
         '''Returns the Python list equivalent of this vector.'''
-        return self.v.tolist()[0]
+        return self.v.tolist()
 
     @property
     def A(self):
         '''Returns the numpy.array equivalent of this vector.'''
-        return self.v.A1
+        return self.v
 
     @property
     def A3(self):
         '''Returns the numpy.array equivalent of this vector's first 3 elements.'''
-        return self.v.A1[0:3]
+        return self.v[0:3]
     
     @property
     def A2(self):
         '''Returns the numpy.array equivalent of this vector's first 2 elements.'''
-        return self.v.A1[0:2]
+        return self.v[0:2]
     
     @property
     def x(self):
         '''Returns the x component of this GVector.'''
-        return self.v[0, 0]
+        return self.v[0]
     
     @property
     def y(self):
         '''Returns the y component of this GVector.'''
-        return self.v[0, 1]
+        return self.v[1]
     
     @property
     def z(self):
         '''Returns the z component of this GVector.'''
-        return self.v[0, 2]
+        return self.v[2]
     
     def __hash__(self):
         return hash(tuple(self.L))
@@ -381,10 +365,10 @@ class GMatrix(object):
           or something that can be converted to a 4x4 of floating point numbers.
         '''
         self.m = self._validate(v)
-        if self.m.A[3].tolist() != [0., 0., 0., 1.]:
+        if self.m[3].tolist() != [0., 0., 0., 1.]:
             raise MatrixInvalidError(
                 'Last row of GMatrix must be [0, 0, 0, 1] but found %r.' %
-                self.m.A[3].tolist())
+                self.m[3].tolist())
 
     @classmethod
     def from_zyx_axis(cls, x, y, z) -> 'GMatrix':
@@ -398,44 +382,32 @@ class GMatrix(object):
     def _validate(cls, v):
         if isinstance(v, GMatrix):
             return v.m.copy()
-        
-        # Sometimes isinstance breaks.
-#         if v.__class__.__name__ == GMatrix.__name__:
-#             if isinstance(v.m, np.matrix):
-#                 return v.m.copy()
 
-        if isinstance(v, np.matrix):
+        if isinstance(v, np.ndarray):
             shape = np.shape(v)
             if shape == (4, 4):
-                return v
+                return np.array(v)
             elif shape == (3, 4):
-                return cls._add_last_row(v)
-            else:
-                raise MatrixShapeError(
-                    'Matrix supplied is not a 4x4 or 3x4, Shape is %s' %
-                    'x'.join(str(n) for n in np.shape(v)))
-        elif isinstance(v, np.ndarray):
-            shape = np.shape(v)
-            if shape == (4, 4):
-                return np.matrix(v)
-            elif shape == (3, 4):
-                return np.matrix(cls._add_last_row(v))
+                return np.vstack((v, cls.LAST_ROW))
             elif shape == (3, 3):
-                return np.matrix(cls._add_last_row(LIST_3_4X4_FLOAT(v)))
+                return np.vstack((
+                    np.hstack((v, np.zeros((3, 1)))),
+                    cls.LAST_ROW))
             else:
                 raise MatrixShapeError(
                     'Array supplied is not a 4x4 or 3x4, Shape is %s' %
-                    'x'.join(str(n) for n in np.shape(v)))
+                    'x'.join(str(n) for n in shape))
         else:
-            vm = np.matrix(LIST_3_4X4_FLOAT(v))
-            if np.shape(vm) == (4, 4):
+            vm = np.array(LIST_3_4X4_FLOAT(v))
+            shape = np.shape(vm)
+            if shape == (4, 4):
                 return vm
             elif np.shape(vm) == (3, 4):
-                return cls._add_last_row(vm)
+                return np.vstack((vm, cls.LAST_ROW))
             else:
                 raise MatrixShapeError(
                     'Matrix supplied is not a 4x4 or 3x4, Shape is %s' %
-                    'x'.join(str(n) for n in np.shape(vm)))
+                    'x'.join(str(n) for n in shape))
 
     @classmethod
     def _add_last_row(cls, m):
@@ -449,16 +421,16 @@ class GMatrix(object):
 
     def __mul__(self, other) -> 'GMatrix':
         if isinstance(other, GMatrix):
-            return GMatrix(self.m * other.m)
+            return GMatrix(np.matmul(self.m, other.m))
         if isinstance(other, GVector):
-            return GVector(self.m * other.v.T)
-        return GMatrix(self.m[0:3] * other)
+            return GVector(np.matmul(self.m, other.v))
+        return GMatrix(np.matmul(self.m[:3], other))
 
     def __rmul__(self, other) -> 'GMatrix':
         if isinstance(other, GMatrix):
-            return GMatrix(other.m * self.m)
+            return GMatrix(np.matmul(other.m, self.m))
         if isinstance(other, GVector):
-            return GVector(other.v * self.m)
+            return GVector(np.matmul(other.v, self.m))
         return GMatrix(other * self.m)
 
     def __add__(self, other) -> 'GMatrix':
@@ -488,10 +460,10 @@ class GMatrix(object):
         return GMatrix(self.m.copy())
 
     def __invert__(self) -> 'GMatrix':
-        return GMatrix(self.m.I)
+        return GMatrix(np.linalg.inv(self.m))
 
     def __getitem__(self, index):
-        return self.A[index]
+        return self.m[index]
 
     def __setitem__(self, index, value):
         self.m[index] = value
@@ -509,8 +481,7 @@ class GMatrix(object):
 
     def length(self):
         '''Returns the Euclidian length of all components in the matrix.'''
-        a1 = self.m[0:3].A1
-        return np.sqrt((a1 * a1).sum())
+        return np.linalg.norm(self.m[0:3])
 
     def is_approx_equal(self, other, error=1.e-12):
         return (self - other).length() < error
@@ -519,7 +490,7 @@ class GMatrix(object):
         return GMatrix(self)
     
     def get_translation(self) -> GVector:
-        return GVector(self.m.T.A[3])
+        return GVector(self.m[:, 3])
     
     def get_rotation(self) -> 'GMatrix':
         return GMatrix(self.A[0:3,0:3])
@@ -534,7 +505,7 @@ class GMatrix(object):
         i.e.
            M.I * M == IDENTITY
         '''
-        return GMatrix(self.m.I)
+        return GMatrix(np.linalg.inv(self.m))
 
     @property
     def L(self) -> List:
@@ -544,13 +515,13 @@ class GMatrix(object):
     @property
     def A(self) -> np.array:
         '''Returns the numpy.array equivalent of this matrix.'''
-        return self.m.A
+        return self.m
     
     @property
     def A2(self) -> np.array:
         '''Returns the numpy.array equivalent of the 2x2 upper left rotation 
         components of this matrix.'''
-        return self.m.A[0:2, 0:2]
+        return self.m[0:2, 0:2]
     
     @property
     def N(self) -> 'GMatrix':
@@ -856,12 +827,12 @@ class AngleSinCos(Angle):
                 sinr_cosr[1], self.sinr_cosr_v[1])
     
     
-def angle(degrees: Union[Angle, float, NoneType]=0, 
-          radians: Union[float, NoneType]=None, 
-          sinr_cosr: Union[Tuple[float, float], NoneType]=None,
-          cosr_sinr: Union[Tuple[float, float], NoneType]=None,
-          angle: Union[Angle, numbers.Number, NoneType]=None, 
-          direction: Union[GVector, Tuple[float], NoneType]=None) -> Angle:
+def angle(degrees: Union[Angle, float, None]=0, 
+          radians: Union[float, None]=None, 
+          sinr_cosr: Union[Tuple[float, float], None]=None,
+          cosr_sinr: Union[Tuple[float, float], None]=None,
+          angle: Union[Angle, numbers.Number, None]=None, 
+          direction: Union[GVector, Tuple[float], None]=None) -> Angle:
     '''Returns an Angle object for the given angle in degrees, radians, cos/sin parn,
     sin/cos pair, angle or a direction vector.
     
@@ -900,10 +871,10 @@ def angle(degrees: Union[Angle, float, NoneType]=0,
 
 
 def inv_rot(rot_func: Callable[..., GMatrix], 
-            degrees: Union[Angle, numbers.Number, NoneType]=0, 
-            radians: Union[float, NoneType]=None, 
-            sinr_cosr: Union[Tuple[float, float], NoneType]=None, 
-            angle: Union[Angle, numbers.Number, NoneType]=None) -> GMatrix:
+            degrees: Union[Angle, numbers.Number, None]=0, 
+            radians: Union[float, None]=None, 
+            sinr_cosr: Union[Tuple[float, float], None]=None, 
+            angle: Union[Angle, numbers.Number, None]=None) -> GMatrix:
     '''Returns the result of calling the rotation function, rot_func, with the
     inverse of the rotation angle.
     
@@ -927,10 +898,10 @@ def inv_rot(rot_func: Callable[..., GMatrix],
     return rot_func(radians=-radians)
 
 
-def angle_to_radians(degrees: Union[Angle, numbers.Number, NoneType]=0, 
-            radians: Union[float, NoneType]=None, 
-            sinr_cosr: Union[Tuple[float, float], NoneType]=None, 
-            angle: Union[Angle, numbers.Number, NoneType]=None) -> float:
+def angle_to_radians(degrees: Union[Angle, numbers.Number, None]=0, 
+            radians: Union[float, None]=None, 
+            sinr_cosr: Union[Tuple[float, float], None]=None, 
+            angle: Union[Angle, numbers.Number, None]=None) -> float:
     '''Returns the angle in radians for the given angle in degrees, radians or sin/cos pair.
     Only one of sinr_cosr or radians or degrees is used in the order
     stated here.
@@ -948,10 +919,10 @@ def angle_to_radians(degrees: Union[Angle, numbers.Number, NoneType]=0,
     return radians
 
     
-def rotation_to_str(degrees: Union[Angle, numbers.Number, NoneType]=90, 
-         radians: Union[float, NoneType]=None, 
-         sinr_cosr: Union[Tuple[float, float], NoneType]=None, 
-         angle: Union[Angle, numbers.Number, NoneType]=None, 
+def rotation_to_str(degrees: Union[Angle, numbers.Number, None]=90, 
+         radians: Union[float, None]=None, 
+         sinr_cosr: Union[Tuple[float, float], None]=None, 
+         angle: Union[Angle, numbers.Number, None]=None, 
          prefix: str='') -> str:
     '''Returns a string indicating the selected rotation method. This is used
     for logging and debugging.'''
@@ -964,10 +935,10 @@ def rotation_to_str(degrees: Union[Angle, numbers.Number, NoneType]=90,
     return f'{prefix}radians={radians}'
 
 
-def rotZ(degrees: Union[Angle, numbers.Number, NoneType]=90, 
-         radians: Union[float, NoneType]=None, 
-         sinr_cosr: Union[Tuple[float, float], NoneType]=None, 
-         angle: Union[Angle, numbers.Number, NoneType]=None) -> GMatrix:
+def rotZ(degrees: Union[Angle, numbers.Number, None]=90, 
+         radians: Union[float, None]=None, 
+         sinr_cosr: Union[Tuple[float, float], None]=None, 
+         angle: Union[Angle, numbers.Number, None]=None) -> GMatrix:
     '''Returns a GMatrix that causes a rotation about Z given an angle
     either in degrees, radians or a sin/cos pair.
     Only one of sinr_cosr or radians or degrees is used in the order
@@ -988,7 +959,7 @@ def rotZ(degrees: Union[Angle, numbers.Number, NoneType]=90,
 
 def rotZSinCos(sinr, cosr) -> GMatrix:
     '''Returns a GMatrix that causes a rotation about Z for the given sin/cos pair.'''
-    return GMatrix(np.matrix([[cosr, -sinr, 0.0, 0], 
+    return GMatrix(np.array([[cosr, -sinr, 0.0, 0], 
                               [sinr, cosr, 0, 0], 
                               [0, 0, 1, 0], 
                               [0, 0, 0, 1]]))
@@ -996,10 +967,10 @@ ROTZ_90: GMatrix = rotZ(90)
 ROTZ_180: GMatrix = rotZ(180)
 ROTZ_270: GMatrix = rotZ(-90)
 
-def rotX(degrees: Union[Angle, numbers.Number, NoneType]=90, 
-         radians: Union[float, NoneType]=None, 
-         sinr_cosr: Union[Tuple[float, float], NoneType]=None, 
-         angle: Union[Angle, numbers.Number, NoneType]=None) -> GMatrix:
+def rotX(degrees: Union[Angle, numbers.Number, None]=90, 
+         radians: Union[float, None]=None, 
+         sinr_cosr: Union[Tuple[float, float], None]=None, 
+         angle: Union[Angle, numbers.Number, None]=None) -> GMatrix:
     '''Returns a GMatrix that causes a rotation about X given an angle
     either in degrees, radians or a sin/cos pair.
     Only one of sinr_cosr or radians or degrees is used in the order
@@ -1021,7 +992,7 @@ def rotX(degrees: Union[Angle, numbers.Number, NoneType]=90,
     
 def rotXSinCos(sinr, cosr) -> GMatrix:
     '''Returns a Gmatrix for a rotation about the X axis given a sin/cos pair.'''
-    return GMatrix(np.matrix([[1.0, 0, 0, 0], 
+    return GMatrix(np.array([[1.0, 0, 0, 0], 
                               [0, cosr, -sinr, 0], 
                               [0, sinr, cosr, 0], 
                               [0, 0, 0, 1]]))
@@ -1029,10 +1000,10 @@ ROTX_90: GMatrix = rotX(90)
 ROTX_180: GMatrix = rotX(180)
 ROTX_270: GMatrix = rotX(-90)
     
-def rotY(degrees: Union[Angle, numbers.Number, NoneType]=90, 
-         radians: Union[float, NoneType]=None, 
-         sinr_cosr: Union[Tuple[float, float], NoneType]=None, 
-         angle: Union[Angle, numbers.Number, NoneType]=None) -> GMatrix:
+def rotY(degrees: Union[Angle, numbers.Number, None]=90, 
+         radians: Union[float, None]=None, 
+         sinr_cosr: Union[Tuple[float, float], None]=None, 
+         angle: Union[Angle, numbers.Number, None]=None) -> GMatrix:
     '''Returns a GMatrix that causes a rotation about Y given an angle
     either in degrees, radians or a sin/cos pair.
     Only one of sinr_cosr or radians or degrees is used in the order
@@ -1053,7 +1024,7 @@ def rotY(degrees: Union[Angle, numbers.Number, NoneType]=90,
     return rotYSinCos(sinr, cosr)
     
 def rotYSinCos(sinr, cosr) -> GMatrix:
-    return GMatrix(np.matrix([[cosr, 0.0, sinr, 0], 
+    return GMatrix(np.array([[cosr, 0.0, sinr, 0], 
                               [0, 1, 0, 0],
                               [-sinr, 0, cosr, 0], 
                               [0, 0, 0, 1]]))
@@ -1085,7 +1056,7 @@ def rotVSinCos(v: Union[GVector, Tuple[float, float, float]],
     uxy = ux * uy
     uyz = uy * uz
     lcosr = 1 - cosr
-    return GMatrix(np.matrix(
+    return GMatrix(np.array(
         [[cosr + ux2 * lcosr, uxy * lcosr - uz * sinr, uxz * lcosr + uy * sinr, 0],
          [uxy * lcosr + uz * sinr, cosr + uy2 * lcosr, uyz * lcosr - ux * sinr, 0],
          [uxz * lcosr - uy * sinr, uyz * lcosr + ux * sinr, cosr + uz2 * lcosr, 0],
@@ -1093,10 +1064,10 @@ def rotVSinCos(v: Union[GVector, Tuple[float, float, float]],
 
 
 def rotV(v: Union[GVector, Tuple[float, float, float]],
-         degrees: Union[Angle, numbers.Number, NoneType]=90, 
-         radians: Union[float, NoneType]=None, 
-         sinr_cosr: Union[Tuple[float, float], NoneType]=None, 
-         angle: Union[Angle, numbers.Number, NoneType]=None) -> GMatrix:
+         degrees: Union[Angle, numbers.Number, None]=90, 
+         radians: Union[float, None]=None, 
+         sinr_cosr: Union[Tuple[float, float], None]=None, 
+         angle: Union[Angle, numbers.Number, None]=None) -> GMatrix:
     '''Returns a GMatrix that causes a rotation about the vector v given 
     an angle either in degrees, radians or a sin/cos pair.
     Only one of sinr_cosr or radians or degrees is used in the order
@@ -1135,13 +1106,13 @@ def scale(s) -> GMatrix:
         v = LIST_3_FLOAT([s, s, s])
     
     return GMatrix(
-        np.matrix([[v[0], 0.0, 0, 0], [0, v[1], 0, 0], [0, 0, v[2], 0], [0, 0, 0, 1]]))
+        np.array([[v[0], 0.0, 0, 0], [0, v[1], 0, 0], [0, 0, v[2], 0], [0, 0, 0, 1]]))
 
 def translate(v: GVector) -> GMatrix:
     '''Returns GMatrix that translates by the given vector.'''
     if not isinstance(v, GVector):
         v = GVector(v)
-    return GMatrix(np.matrix(
+    return GMatrix(np.array(
         [[1., 0, 0, v.x], [0, 1, 0, v.y], [0, 0, 1, v.z], [0, 0, 0, 1]]))
     
 def tranX(v: float) -> GMatrix:

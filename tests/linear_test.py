@@ -81,15 +81,8 @@ class TestLinear(unittest.TestCase):
         self.assertEqual(linear.GVector(np.array([l3]).T), v1, "vector construction failed")
         self.assertEqual(linear.GVector(np.array([l4]).T), v1, "vector construction failed")
         
-        self.assertEqual(linear.GVector(np.matrix([l3])), v1, "vector construction failed")
-        self.assertEqual(linear.GVector(np.matrix([l4])), v1, "vector construction failed")
-        self.assertEqual(linear.GVector(np.matrix([l3]).T), v1, "vector construction failed")
-        self.assertEqual(linear.GVector(np.matrix([l4]).T), v1, "vector construction failed")
-        
         self.assertRaises(linear.MatrixShapeError, linear.GVector, np.array([1]))
         self.assertRaises(linear.MatrixShapeError, linear.GVector, np.array([l3, l3]))
-        self.assertRaises(linear.MatrixShapeError, linear.GVector, np.matrix([[1]]))
-        self.assertRaises(linear.MatrixShapeError, linear.GVector, np.matrix([l3, l3]))
         self.assertRaises(TypeError, linear.GVector, [object()])
 
 
@@ -97,22 +90,19 @@ class TestLinear(unittest.TestCase):
         v = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]
         v3 = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]]
         
-        m = linear.GMatrix(np.matrix(v))
-        m3 = linear.GMatrix(np.matrix(v3))
+        m = linear.GMatrix(np.array(v))
+        m3 = linear.GMatrix(np.array(v3))
         self.assertEqual(m, m3, 'A 3x4 and and 4x4 should me equal')
         self.assertEqual(m, m.I, 'Identity inverse should be equal')
         
         m2 = linear.GMatrix(m)
         self.assertEqual(m2, m, 'copy constructor failed')
-        self.assertEqual(linear.GMatrix(m2.m), m, 'np.matrix constructor failed')
+        self.assertEqual(linear.GMatrix(m2.m), m, 'np.array constructor failed')
         
-        vm = np.matrix(v)
-        v3m = np.matrix(v3)
+
         va = np.array(v)
         v3a = np.array(v3)
-        
-        self.assertEqual(linear.GMatrix(vm), m, 'np.matrix constructor failed')
-        self.assertEqual(linear.GMatrix(v3m), m, 'np.matrix constructor failed')
+
         self.assertEqual(linear.GMatrix(va), m, 'np.array constructor failed')
         self.assertEqual(linear.GMatrix(v3a), m, 'np.array constructor failed')
         
@@ -121,8 +111,6 @@ class TestLinear(unittest.TestCase):
         self.assertRaises(linear.ConversionException, linear.GMatrix, [[4],[4]])
         self.assertRaises(linear.MatrixShapeError, linear.GMatrix, np.array([5]))
         self.assertRaises(linear.MatrixShapeError, linear.GMatrix, np.array([[4],[4]]))
-        self.assertRaises(linear.MatrixShapeError, linear.GMatrix, np.matrix([5]))
-        self.assertRaises(linear.MatrixShapeError, linear.GMatrix, np.matrix([[4],[4]]))
         
         v2 = [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 2]]
         self.assertRaises(linear.MatrixInvalidError, linear.GMatrix, v2)
