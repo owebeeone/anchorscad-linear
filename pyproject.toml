@@ -18,6 +18,7 @@ classifiers = [
 ]
 dependencies = [
   "numpy",
+  "anchorscad-test-tools", 
 ]
 
 [project.urls]
@@ -28,7 +29,6 @@ dependencies = [
 dependencies = [
   "pytest>=7.0.0",
   "pytest-cov>=4.0.0",
-  "anchorscad-test-tools",  
 ] 
 [tool.hatch.build.targets.wheel]
 packages = ["src/anchorscad_lib"]
