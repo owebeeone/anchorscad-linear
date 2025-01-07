@@ -273,11 +273,6 @@ class GVector(object):
         Returns a new normalized (length 1 same direction) vector.
         '''
         return GVector(self.v[0:3] / self.length())
-    
-    @property   
-    def A2(self):
-        '''Returns the numpy.array equivalent of this vector's first 2 elements.'''
-        return self.v[0:2]
 
     def cross3D(self, other):
         '''
@@ -500,7 +495,7 @@ class GMatrix(object):
         return GVector(v[0:3])
 
     @property
-    def I(self) -> 'GMatrix':
+    def I(self) -> 'GMatrix':  # noqa: E743
         '''Returns the inverted matrix.
         i.e.
            M.I * M == IDENTITY
@@ -646,10 +641,6 @@ class Angle(ABC):
         '''Returns the negative of the angle.'''
         return AngleRadians(-self.radians())
     
-    def __sub__(self, other: 'Angle') -> str:
-        '''Returns subtraction of angles.'''
-        return AngleRadians(self.radians() - other.radians())
-    
     @abstractmethod
     def __bool__(self) -> bool:
         '''Returns False if the angle is 0, True otherwise.'''
@@ -714,10 +705,6 @@ class AngleDegrees(Angle):
 
     def __bool__(self) -> bool:
         return not clean_equal(self.degrees_v, 0.0)
-    
-    def __neg__(self) -> 'Angle':
-        '''Returns the negative of the angle.'''
-        return AngleDegrees(-self.degrees())
     
     def __add__(self, other: 'Angle') -> 'Angle':
         '''Adds two angles.'''
@@ -885,7 +872,7 @@ def inv_rot(rot_func: Callable[..., GMatrix],
         sinr_cosr: A tuple containing the sine and cosine of the rotation angle.
         angle: An Angle object.
     '''
-    if not angle is None:
+    if angle is not None:
         if isinstance(angle, Angle):
             return rot_func(angle=angle.inv())
         return rot_func(degrees=-angle)
@@ -906,11 +893,11 @@ def angle_to_radians(degrees: Union[Angle, numbers.Number, None]=0,
     Only one of sinr_cosr or radians or degrees is used in the order
     stated here.
     '''
-    if not angle is None:
+    if angle is not None:
         if isinstance(angle, Angle):
             return angle.radians()
         return to_radians(angle)
-    if not sinr_cosr is None:
+    if sinr_cosr is not None:
         return np.arctan2(sinr_cosr[0], sinr_cosr[1])
     if radians is None:
         if isinstance(degrees, Angle):
@@ -926,7 +913,7 @@ def rotation_to_str(degrees: Union[Angle, numbers.Number, None]=90,
          prefix: str='') -> str:
     '''Returns a string indicating the selected rotation method. This is used
     for logging and debugging.'''
-    if not angle is None:
+    if angle is not None:
         return f'{prefix}angle={angle}'
     if sinr_cosr:
         return f'{prefix}sinr_cosr={sinr_cosr}'
@@ -943,10 +930,10 @@ def rotZ(degrees: Union[Angle, numbers.Number, None]=90,
     either in degrees, radians or a sin/cos pair.
     Only one of sinr_cosr or radians or degrees is used in the order
     stated here.'''
-    if not angle is None:
+    if angle is not None:
         sinr_cosr = angle.sinr_cosr()
         return rotZSinCos(clean(sinr_cosr[0]), clean(sinr_cosr[1]))
-    if not sinr_cosr is None:
+    if sinr_cosr is not None:
         return rotZSinCos(clean(sinr_cosr[0]), clean(sinr_cosr[1]))
     if radians is None:
         if isinstance(degrees, Angle):
@@ -976,7 +963,7 @@ def rotX(degrees: Union[Angle, numbers.Number, None]=90,
     Only one of sinr_cosr or radians or degrees is used in the order
     stated here.
     '''
-    if not angle is None:
+    if angle is not None:
         sinr_cosr = angle.sinr_cosr()
         return rotXSinCos(clean(sinr_cosr[0]), clean(sinr_cosr[1]))
     if sinr_cosr:
@@ -1008,7 +995,7 @@ def rotY(degrees: Union[Angle, numbers.Number, None]=90,
     either in degrees, radians or a sin/cos pair.
     Only one of sinr_cosr or radians or degrees is used in the order
     stated here.'''
-    if not angle is None:
+    if angle is not None:
         sinr_cosr = angle.sinr_cosr()
         return rotYSinCos(clean(sinr_cosr[0]), clean(sinr_cosr[1]))
     if sinr_cosr:
@@ -1072,7 +1059,7 @@ def rotV(v: Union[GVector, Tuple[float, float, float]],
     an angle either in degrees, radians or a sin/cos pair.
     Only one of sinr_cosr or radians or degrees is used in the order
     stated here.'''
-    if not angle is None:
+    if angle is not None:
         sinr_cosr = angle.sinr_cosr()
         return rotVSinCos(v, clean(sinr_cosr[0]), clean(sinr_cosr[1]))
     if sinr_cosr:
@@ -1181,7 +1168,7 @@ def rotToPlane(v, plane_normal) -> GMatrix:
     angle = np.arctan2(cross.length(), dot)
     return rotV(cross, radians=np.pi/2 - angle)
 
-def mirror(axis) -> GMatrix:
+def mirror(axis: GVector) -> GMatrix:
     '''Mirror at the origin about any plane. The axis provided is the normal to the mirror plane.
     '''
     axis = normalize(axis)
