@@ -51,7 +51,7 @@ m1 = GMatrix([
 # Matrix operations
 m2 = m1 * m1 # Matrix multiplication
 m3 = ~m1 # Matrix inverse (same as m1.I)
-v2 = m1 v1 # Transform vector
+v2 = m1 * v1 # Transform vector
 ```
 
 ### Angle

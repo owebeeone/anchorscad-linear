@@ -1299,8 +1299,9 @@ def distance_between_point_plane(point: GMatrix, plane: GMatrix) -> float:
     Returns:
       distance: The perpendicular distance from the point to the plane.
     '''
-    # Extract the plane's normal vector (Z-axis) and normalize it
-    plane_normal = plane.get_axis(2).N  # GVector
+    # Extract the plane's normal vector (Z-axis) from the columns and normalize it
+    # In a transformation matrix, the Z axis is the 3rd column (index 2)
+    plane_normal = GVector(plane.A.T[2][:3]).N
 
     # Extract the translation vectors
     plane_translation = plane.get_translation()  # GVector
@@ -1314,5 +1315,5 @@ def distance_between_point_plane(point: GMatrix, plane: GMatrix) -> float:
     # This gives the point's distance from the origin in the direction of the plane's normal
     distance_point = plane_normal.dot3D(point_translation)
 
-    return distance_point - distance_plane
+    return clean(distance_point - distance_plane, epsilon=1.e-20)
 
